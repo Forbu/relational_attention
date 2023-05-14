@@ -1,9 +1,7 @@
 # start from simple python image
-FROM python:3.9-slim
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-RUN pip install pytest
-# insall curl and poetry
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl && apt-get install build-essential -y
 
+RUN pip install pytest torch_scatter
 RUN curl -sSL https://install.python-poetry.org | python3 -

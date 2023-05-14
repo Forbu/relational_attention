@@ -13,6 +13,7 @@ ai = softmax(qij * kij.T) * vij
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch_scatter import scatter
 
 class RelationalAttention(nn.Module):
     """
@@ -42,6 +43,7 @@ class RelationalAttention(nn.Module):
             edges_index: tensor of shape (2, E)
             edges_values: tensor of shape (E, edge_size)
         """
+        
         # project nodes and edges into a common space for
         # the key, query and value
         q_node = self.WQ_node(nodes)
@@ -62,8 +64,19 @@ class RelationalAttention(nn.Module):
         # now we compute the attention
         # we use the dot product between q_ij and k_ij.T
         # and then we apply softmax
-        output_edges = F.scaled_dot_product_attention(q_ij, k_ij, v_ij)
-        output_nodes = torch.scatter_add_(0, edges_index[0], output_edges)
+        output_edges = F.scaled_dot_product_attention(q_ij.unsqueeze(0), k_ij.unsqueeze(0), v_ij.unsqueeze(0))
+        
+        output_edges = output_edges.squeeze(0)
+        
+        print(output_edges.shape)
+        print(edges_index.shape)
+        
+        # now we need to sum the edges values for each node
+        output_nodes = scatter(src=output_edges, index=edges_index[1], dim=0, reduce='sum')
+        
+        print(edges_index[1].unsqueeze(1))
+        
+        print(output_nodes)
         
         return output_nodes, output_edges
     
