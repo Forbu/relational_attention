@@ -30,7 +30,6 @@ def init_graph():
     return nodes, edges_index, edges
 
 # not test per default
-@pytest.mark.skip
 def test_relationallayer(init_graph):
     nodes, edges_index, edges = init_graph
     

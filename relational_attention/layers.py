@@ -52,6 +52,7 @@ class RelationalAttention(nn.Module):
 
         self.WV_node = nn.Linear(node_size, output_size)
         self.WV_edge = nn.Linear(edge_size, output_size)
+        
 
     def forward(self, nodes, edges_index, edges_values):
         """
@@ -89,7 +90,7 @@ class RelationalAttention(nn.Module):
 
         # now we need to sum the edges values for each node
         output_nodes = scatter(
-            src=output_edges, index=edges_index[1], dim=0, reduce="sum"
+            src=output_edges, index=edges_index[1], dim=0, reduce="sum", dim_size=nodes.size(0)
         )
 
         return output_nodes, output_edges
@@ -114,6 +115,10 @@ class MultiHeadRelationalAttention(nn.Module):
 
         self.WV_node = nn.Linear(n_embd, n_embd)
         self.WV_edge = nn.Linear(n_embd, n_embd)
+        
+        # projection layer
+        self.projection_nodes = nn.Linear(n_embd, n_embd)
+        self.projection_edges = nn.Linear(n_embd, n_embd)
     
     def forward(self, nodes, edges_index, edges_values):
         """
@@ -161,5 +166,8 @@ class MultiHeadRelationalAttention(nn.Module):
         output_nodes = scatter(
             src=output_edges, index=edges_index[1], dim=0, reduce="sum", dim_size=nodes.size(0)
         )
+        
+        output_nodes = self.projection_nodes(output_nodes)
+        output_edges = self.projection_edges(output_edges)
         
         return output_nodes, output_edges
