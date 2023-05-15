@@ -100,6 +100,8 @@ class MultiHeadRelationalAttention(nn.Module):
     """
     
     def __init__(self, nb_head=4, n_embd=384):
+        super().__init__()
+        
         self.nb_head = nb_head
         self.n_embd = n_embd
         
@@ -121,7 +123,7 @@ class MultiHeadRelationalAttention(nn.Module):
             edges_values: tensor of shape (E, edge_size)
         """
         # project nodes and edges into a common space for
-        # the key, query and value
+        # the key, query and value        
         q_node = self.WQ_node(nodes)
         k_node = self.WK_node(nodes)
         v_node = self.WV_node(nodes)
@@ -134,14 +136,14 @@ class MultiHeadRelationalAttention(nn.Module):
         v_edge = self.WV_edge(edges_values)
         
         # now we create the edges values
-        q_ij = q_node[edges_index[0]] * q_edge  # shape (E, output_size)
-        k_ij = k_node[edges_index[1]] * k_edge  # shape (E, output_size)
-        v_ij = v_node[edges_index[1]] * v_edge  # shape (E, output_size)
+        q_ij = q_node[edges_index[0]] + q_edge  # shape (E, output_size)
+        k_ij = k_node[edges_index[1]] + k_edge  # shape (E, output_size)
+        v_ij = v_node[edges_index[1]] + v_edge  # shape (E, output_size)
         
         # now we create the heads
-        q_ij = q_ij.view(self.nb_head, 1, self.n_embd // self.nb_head)
-        k_ij = k_ij.view(self.nb_head, 1, self.n_embd // self.nb_head)
-        v_ij = v_ij.view(self.nb_head, 1, self.n_embd // self.nb_head)
+        q_ij = q_ij.view(self.nb_head, edges_values.size(0), self.n_embd // self.nb_head)
+        k_ij = k_ij.view(self.nb_head, edges_values.size(0), self.n_embd // self.nb_head)
+        v_ij = v_ij.view(self.nb_head, edges_values.size(0), self.n_embd // self.nb_head)
         
         # now we compute the attention
         # we use the dot product between q_ij and k_ij.T
@@ -157,7 +159,7 @@ class MultiHeadRelationalAttention(nn.Module):
         
         # now we need to sum the edges values for each node
         output_nodes = scatter(
-            src=output_edges, index=edges_index[1], dim=0, reduce="sum"
+            src=output_edges, index=edges_index[1], dim=0, reduce="sum", dim_size=nodes.size(0)
         )
         
         return output_nodes, output_edges
